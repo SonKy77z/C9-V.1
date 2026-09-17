@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>ระบบจองห้อง สำนักวิชาเภสัชศาสตร์</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Noto Sans Thai', sans-serif; }
+    .custom-scroll::-webkit-scrollbar { height: 8px; width: 6px; }
+    .custom-scroll::-webkit-scrollbar-track { background: #f1f5f9; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen pb-16">
+
+  <!-- Navbar -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 py-3 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div class="flex items-center gap-3 w-full sm:w-auto justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-xl shadow-md">Rx</div>
+          <div>
+            <h1 class="text-lg sm:text-xl font-bold text-slate-800 leading-tight">ระบบจองห้อง สำนักวิชาเภสัชศาสตร์</h1>
+            <p class="text-xs text-slate-500">จองได้ 24 ชม. • สูงสุด 4 ชม./วัน/รหัสนักศึกษา</p>
+          </div>
+        </div>
+        <button onclick="loadBookings()" title="รีเฟรชข้อมูล" class="p-2 text-slate-500 hover:text-emerald-600 sm:hidden">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        </button>
+      </div>
+
+      <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+        <nav class="flex bg-slate-100 p-1 rounded-xl text-xs sm:text-sm font-medium">
+          <button onclick="switchTab('timeline')" id="tabBtn-timeline" class="px-3 py-1.5 rounded-lg bg-white shadow-sm text-emerald-700">ผัง 24 ชม.</button>
+          <button onclick="switchTab('booking')" id="tabBtn-booking" class="px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900">+ จองห้อง</button>
+          <button onclick="switchTab('mybookings')" id="tabBtn-mybookings" class="px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900">การจองของฉัน</button>
+        </nav>
+        <button onclick="loadBookings()" class="hidden sm:flex p-2 text-slate-500 hover:text-emerald-600 rounded-lg hover:bg-slate-100" title="ซิงก์ข้อมูล">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 mt-6">
+
+    <!-- แถบเลือกวันที่และห้องสำหรับหน้า Timeline -->
+    <div id="dateControlBar" class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 mb-6 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-2">
+        <button onclick="changeDate(-1)" class="p-2 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600 font-bold">‹ วันก่อนหน้า</button>
+        <input type="date" id="selectedDate" onchange="onDateChange()" class="border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:border-emerald-500">
+        <button onclick="changeDate(1)" class="p-2 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600 font-bold">วันถัดไป ›</button>
+        <button onclick="setToday()" class="text-xs bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-xl text-slate-600 font-medium">วันนี้</button>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <label class="text-xs text-slate-500">กรองห้อง:</label>
+        <select id="roomFilter" onchange="renderTimeline()" class="border border-slate-200 rounded-xl px-3 py-1.5 text-xs sm:text-sm font-medium outline-none">
+          <option value="ALL">ทั้งหมด (7 ห้อง)</option>
+          <option value="115">ห้อง 115</option>
+          <option value="116">ห้อง 116</option>
+          <option value="207">ห้อง 207</option>
+          <option value="208">ห้อง 208</option>
+          <option value="209">ห้อง 209</option>
+          <option value="210">ห้อง 210</option>
+          <option value="Active Learning">Active Learning</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- TAB 1: ผังปฏิทิน 24 ชั่วโมง -->
+    <section id="view-timeline">
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 class="font-bold text-base text-slate-800">ผังการใช้ห้องประจำวัน (24 ชม.)</h2>
+            <p class="text-xs text-slate-500">คลิกที่ช่องสีแดงเพื่อดูรายละเอียดผู้จองและเบอร์ติดต่อ</p>
+          </div>
+          <div class="flex items-center gap-4 text-xs font-medium">
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-emerald-100 border border-emerald-300"></span> ว่าง</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-rose-500 shadow-sm"></span> ไม่ว่าง (ติดจอง)</span>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto custom-scroll">
+          <div class="min-w-[1250px] p-4">
+            <!-- หัวตารางชั่วโมง 00:00 - 24:00 -->
+            <div class="grid grid-cols-[140px_repeat(24,1fr)] gap-1 text-center text-xs font-semibold text-slate-500 border-b border-slate-200 pb-2 mb-2">
+              <div class="text-left pl-2">ห้อง / เวลา</div>
+              <script>
+                for(let h=0; h<24; h++){
+                  document.write(`<div>${String(h).padStart(2,'0')}:00</div>`);
+                }
+              </script>
+            </div>
+
+            <!-- แถวของแต่ละห้อง -->
+            <div id="timelineRows" class="space-y-2.5">
+              <div class="py-12 text-center text-slate-400 text-sm">กำลังโหลดข้อมูลจาก Google Sheets...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: ฟอร์มจองห้อง -->
+    <section id="view-booking" class="hidden max-w-2xl mx-auto">
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+        <h2 class="text-lg font-bold text-slate-800 mb-1">จองห้องใหม่</h2>
+        <p class="text-xs text-slate-500 mb-6">กรอกข้อมูลให้ครบถ้วน จองได้สูงสุดไม่เกิน 4 ชม./วัน ต่อ 1 รหัสนักศึกษา</p>
+
+        <form id="bookingForm" onsubmit="handleFormSubmit(event)" class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">รหัสนักศึกษา *</label>
+              <input type="text" id="bStudentId" required placeholder="เช่น 66123456" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-emerald-500 outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">ชื่อ - นามสกุล *</label>
+              <input type="text" id="bName" required placeholder="เช่น ธนทัต ศรีระพันธุ์" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-emerald-500 outline-none">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">เบอร์โทรศัพท์ *</label>
+              <input type="tel" id="bPhone" required placeholder="08x-xxx-xxxx" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-emerald-500 outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">วันที่ต้องการจอง *</label>
+              <input type="date" id="bDate" required onchange="checkAvailableRooms()" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-emerald-500 outline-none">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">เวลาเริ่ม *</label>
+              <select id="bStartTime" onchange="updateEndTimeOptions(); checkAvailableRooms();" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none"></select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">เวลาสิ้นสุด (สูงสุด 4 ชม.) *</label>
+              <select id="bEndTime" onchange="checkAvailableRooms();" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none"></select>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">รายละเอียดกิจกรรม / การนัดหมายอาจารย์ *</label>
+            <textarea id="bReason" required rows="2" placeholder="เช่น ติววิชา Pharmacology, นัดพบอาจารย์ที่ปรึกษา" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-emerald-500 outline-none"></textarea>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">รหัสผ่านยกเลิกการจอง (ไม่บังคับ)</label>
+            <input type="text" id="bPasscode" placeholder="หากไม่ระบุ ใครก็สามารถกดยกเลิกได้" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-emerald-500 outline-none">
+            <p class="text-[11px] text-slate-400 mt-1">ตั้งรหัสไว้เพื่อป้องกันผู้อื่นกดยกเลิกรายการของคุณโดยไม่ได้ตั้งใจ</p>
+          </div>
+
+          <!-- กล่องแสดงห้องว่างที่สามารถเลือกได้ -->
+          <div class="pt-2">
+            <label class="block text-xs font-semibold text-slate-700 mb-2">เลือกห้องที่ว่างตามเวลาที่ระบุ:</label>
+            <div id="roomSelectionContainer" class="space-y-2">
+              <div class="text-xs text-slate-400 p-3 bg-slate-50 rounded-xl">กรุณาเลือกวันและเวลาที่ต้องการจองเพื่อตรวจสอบห้องว่าง</div>
+            </div>
+          </div>
+
+          <input type="hidden" id="selectedRoomInput" required>
+
+          <button type="submit" id="submitBookingBtn" disabled class="w-full py-3 bg-slate-300 text-white font-bold rounded-xl shadow transition mt-4 cursor-not-allowed">
+            ยืนยันการจองห้อง
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- TAB 3: การจองของฉัน -->
+    <section id="view-mybookings" class="hidden max-w-4xl mx-auto">
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+        <h2 class="text-lg font-bold text-slate-800 mb-1">ตรวจสอบและจัดการการจองของฉัน</h2>
+        <p class="text-xs text-slate-500 mb-4">ค้นหาด้วยรหัสนักศึกษาเพื่อดูประวัติและกดยกเลิกการจอง</p>
+
+        <div class="flex gap-2 mb-6">
+          <input type="text" id="searchMyId" placeholder="กรอกรหัสนักศึกษาของคุณ" class="border border-slate-200 rounded-xl px-4 py-2 text-sm w-full max-w-xs focus:border-emerald-500 outline-none">
+          <button onclick="renderMyBookings()" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl">ค้นหา</button>
+        </div>
+
+        <div id="myBookingsList" class="space-y-3">
+          <div class="text-center py-8 text-slate-400 text-xs">กรอกรหัสนักศึกษาแล้วกดค้นหา</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: รายละเอียดการจอง -->
+  <div id="detailModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100 animate-in fade-in zoom-in duration-150">
+      <div class="flex justify-between items-start mb-4">
+        <div>
+          <span id="mRoomBadge" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-100 text-emerald-800"></span>
+          <h3 class="text-base font-bold text-slate-800 mt-2" id="mTime"></h3>
+        </div>
+        <button onclick="closeModal('detailModal')" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+      </div>
+      
+      <div class="space-y-3 text-sm border-t border-slate-100 pt-3">
+        <div>
+          <span class="text-xs text-slate-400 block">ผู้จอง</span>
+          <p class="font-semibold text-slate-700" id="mName"></p>
+          <p class="text-xs text-slate-500" id="mStudentId"></p>
+        </div>
+        <div>
+          <span class="text-xs text-slate-400 block">เบอร์โทรติดต่อ</span>
+          <a id="mPhoneLink" href="#" class="font-bold text-emerald-600 hover:underline flex items-center gap-1 text-sm">
+            <span id="mPhone"></span>
+            <span class="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded">โทรออก</span>
+          </a>
+        </div>
+        <div>
+          <span class="text-xs text-slate-400 block">รายละเอียดกิจกรรม</span>
+          <p class="text-slate-600 bg-slate-50 p-2.5 rounded-xl text-xs mt-1 leading-relaxed" id="mReason"></p>
+        </div>
+      </div>
+
+      <div class="mt-6 flex justify-end gap-2">
+        <button onclick="promptCancelBooking(currentDetailBooking)" class="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold rounded-xl">ขอยกเลิกการจองนี้</button>
+        <button onclick="closeModal('detailModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl">ปิด</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ยืนยันยกเลิก + ใส่รหัสผ่าน -->
+  <div id="cancelModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-100">
+      <h3 class="text-base font-bold text-slate-800 mb-2">ยืนยันการยกเลิกการจอง</h3>
+      <p class="text-xs text-slate-500 mb-4" id="cancelDesc"></p>
+
+      <div id="passcodeBox" class="mb-4 hidden">
+        <label class="block text-xs font-semibold text-slate-700 mb-1">ใส่รหัสผ่านยกเลิก:</label>
+        <input type="password" id="inputCancelPasscode" placeholder="กรอกรหัสที่ตั้งไว้ตอนจอง" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-rose-500">
+      </div>
+
+      <div class="flex justify-end gap-2">
+        <button onclick="closeModal('cancelModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold rounded-xl">ยกเลิก</button>
+        <button onclick="confirmExecuteCancel()" id="btnExecuteCancel" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl">ยืนยันการลบ</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const ALL_ROOMS = ["115", "116", "207", "208", "209", "210", "Active Learning"];
+    let state = {
+      bookings: [],
+      currentDate: getTodayString(),
+      selectedRoom: ""
+    };
+    let currentDetailBooking = null;
+    let targetCancelBooking = null;
+
+    function getTodayString() {
+      const d = new Date();
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    // เริ่มต้นระบบ
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('selectedDate').value = state.currentDate;
+      document.getElementById('bDate').value = state.currentDate;
+      populateTimeOptions();
+      loadBookings();
+    });
+
+    // โหลดข้อมูลจาก Google Apps Script
+    function loadBookings() {
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(data) {
+            state.bookings = data || [];
+            renderTimeline();
+            if (document.getElementById('bDate').value) checkAvailableRooms();
+          })
+          .withFailureHandler(function(err) {
+            alert('โหลดข้อมูลไม่สำเร็จ: ' + err.message);
+          })
+          .getBookings();
+      } else {
+        // Fallback จำลองเมื่อเปิดใน Browser ธรรมดา
+        state.bookings = [];
+        renderTimeline();
+      }
+    }
+
+    // ปุ่มเลื่อนวันที่
+    function changeDate(days) {
+      const parts = state.currentDate.split('-');
+      const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+      d.setDate(d.getDate() + days);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      state.currentDate = `${yyyy}-${mm}-${dd}`;
+      document.getElementById('selectedDate').value = state.currentDate;
+      renderTimeline();
+    }
+
+    function setToday() {
+      state.currentDate = getTodayString();
+      document.getElementById('selectedDate').value = state.currentDate;
+      renderTimeline();
+    }
+
+    function onDateChange() {
+      state.currentDate = document.getElementById('selectedDate').value;
+      renderTimeline();
+    }
+
+    // วาดตารางผัง 24 ชม.
+    function renderTimeline() {
+      const container = document.getElementById('timelineRows');
+      const filter = document.getElementById('roomFilter').value;
+      const roomsToShow = filter === 'ALL' ? ALL_ROOMS : [filter];
+      const dayBookings = state.bookings.filter(b => b.date === state.currentDate);
+
+      let html = '';
+
+      roomsToShow.forEach(room => {
+        const isAL = room === 'Active Learning';
+        const badge = isAL 
+          ? `<span class="bg-emerald-600 text-white font-black text-xs px-2 py-0.5 rounded-md shadow-sm">AL</span>` 
+          : `<span class="bg-slate-100 text-slate-800 font-bold text-xs px-2 py-0.5 rounded-md border">${room}</span>`;
+
+        html += `
+          <div class="grid grid-cols-[140px_repeat(24,1fr)] gap-1 items-center bg-slate-50/60 p-2 rounded-xl border border-slate-100 hover:border-slate-200 transition">
+            <div class="flex items-center gap-2 pl-1">
+              ${badge}
+              <span class="text-xs font-bold text-slate-700">${room}</span>
+            </div>
+        `;
+
+        // 24 ชั่วโมง (0-23)
+        for (let h = 0; h < 24; h++) {
+          const hStart = h * 60;
+          const hEnd = (h + 1) * 60;
+
+          // ตรวจสอบว่าช่วงเวลานี้มีจองไหม
+          const bk = dayBookings.find(b => {
+            if (b.room !== room) return false;
+            const bStart = timeToMinutes(b.startTime);
+            const bEnd = timeToMinutes(b.endTime);
+            return hStart < bEnd && hEnd > bStart;
+          });
+
+          if (bk) {
+            html += `
+              <div onclick='openBookingDetail(${JSON.stringify(bk).replace(/'/g, "&apos;")})' 
+                   title="ติดจอง: ${bk.name} (${bk.startTime}-${bk.endTime}) คลิกดูรายละเอียด"
+                   class="h-9 bg-rose-500 hover:bg-rose-600 rounded cursor-pointer flex items-center justify-center text-[10px] text-white font-medium shadow-sm transition">
+                <span class="truncate px-0.5">${bk.studentId.slice(-4)}</span>
+              </div>
+            `;
+          } else {
+            html += `
+              <div onclick="quickSelectSlot('${room}', ${h})" 
+                   title="ว่าง - คลิกเพื่อจองห้องนี้"
+                   class="h-9 bg-white hover:bg-emerald-50 rounded border border-slate-200/80 cursor-pointer flex items-center justify-center text-[10px] text-slate-300 hover:text-emerald-600 transition">
+                +
+              </div>
+            `;
+          }
+        }
+
+        html += `</div>`;
+      });
+
+      container.innerHTML = html;
+    }
+
+    // กดช่องว่างแล้วพาไปจองทันที
+    function quickSelectSlot(room, hour) {
+      switchTab('booking');
+      document.getElementById('bDate').value = state.currentDate;
+      const startStr = String(hour).padStart(2, '0') + ':00';
+      const endHour = Math.min(hour + 1, 24);
+      const endStr = String(endHour).padStart(2, '0') + ':00';
+      
+      document.getElementById('bStartTime').value = startStr;
+      updateEndTimeOptions();
+      document.getElementById('bEndTime').value = endStr;
+      checkAvailableRooms();
+      selectRoom(room);
+    }
+
+    // ตัวเลือกเวลา 00:00 - 24:00
+    function populateTimeOptions() {
+      const sSelect = document.getElementById('bStartTime');
+      sSelect.innerHTML = '';
+      for (let h = 0; h < 24; h++) {
+        const t = String(h).padStart(2, '0') + ':00';
+        sSelect.innerHTML += `<option value="${t}">${t}</option>`;
+      }
+      sSelect.value = "09:00";
+      updateEndTimeOptions();
+    }
+
+    function updateEndTimeOptions() {
+      const sVal = document.getElementById('bStartTime').value;
+      const startH = parseInt(sVal.split(':')[0], 10);
+      const eSelect = document.getElementById('bEndTime');
+      eSelect.innerHTML = '';
+
+      // จองได้สูงสุด 4 ชม.
+      const maxH = Math.min(startH + 4, 24);
+      for (let h = startH + 1; h <= maxH; h++) {
+        const t = String(h).padStart(2, '0') + ':00';
+        eSelect.innerHTML += `<option value="${t}">${t} (${h - startH} ชม.)</option>`;
+      }
+    }
+
+    // ตรวจสอบห้องว่างและแสดงคำแนะนำ
+    function checkAvailableRooms() {
+      const date = document.getElementById('bDate').value;
+      const sTime = document.getElementById('bStartTime').value;
+      const eTime = document.getElementById('bEndTime').value;
+      const container = document.getElementById('roomSelectionContainer');
+
+      if (!date || !sTime || !eTime) return;
+
+      const reqStart = timeToMinutes(sTime);
+      const reqEnd = timeToMinutes(eTime);
+      const dayBookings = state.bookings.filter(b => b.date === date);
+
+      const availableRooms = [];
+      const partialRooms = [];
+
+      ALL_ROOMS.forEach(room => {
+        const rBookings = dayBookings.filter(b => b.room === room);
+        const hasConflict = rBookings.some(b => {
+          const bs = timeToMinutes(b.startTime);
+          const be = timeToMinutes(b.endTime);
+          return reqStart < be && reqEnd > bs;
+        });
+
+        if (!hasConflict) {
+          availableRooms.push(room);
+        } else {
+          // คำนวณช่วงที่ว่างบางส่วน
+          partialRooms.push(room);
+        }
+      });
+
+      let html = '';
+
+      if (availableRooms.length > 0) {
+        html += `<div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">`;
+        availableRooms.forEach(room => {
+          const isAL = room === 'Active Learning';
+          html += `
+            <button type="button" onclick="selectRoom('${room}')" id="roomBtn-${room}" 
+                    class="room-btn border border-slate-200 hover:border-emerald-500 p-3 rounded-xl flex flex-col items-center gap-1 transition bg-white text-slate-700">
+              ${isAL ? '<span class="bg-emerald-600 text-white font-bold text-xs px-2 py-0.5 rounded">AL</span>' : ''}
+              <span class="font-bold text-sm">ห้อง ${room}</span>
+              <span class="text-[10px] text-emerald-600 font-medium">ว่างตลอดช่วง</span>
+            </button>
+          `;
+        });
+        html += `</div>`;
+      } else {
+        html += `<div class="p-3 bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-xl mb-3">
+          ไม่มีห้องเดี่ยวที่ว่างตลอดทั้งช่วงเวลานี้ (${sTime} - ${eTime})
+        </div>`;
+      }
+
+      container.innerHTML = html;
+      state.selectedRoom = '';
+      document.getElementById('selectedRoomInput').value = '';
+      updateSubmitButton();
+    }
+
+    function selectRoom(room) {
+      state.selectedRoom = room;
+      document.getElementById('selectedRoomInput').value = room;
+      document.querySelectorAll('.room-btn').forEach(b => {
+        b.classList.remove('border-emerald-600', 'bg-emerald-50', 'ring-2', 'ring-emerald-500');
+      });
+      const targetBtn = document.getElementById(`roomBtn-${room}`);
+      if (targetBtn) {
+        targetBtn.classList.add('border-emerald-600', 'bg-emerald-50', 'ring-2', 'ring-emerald-500');
+      }
+      updateSubmitButton();
+    }
+
+    function updateSubmitButton() {
+      const btn = document.getElementById('submitBookingBtn');
+      if (state.selectedRoom) {
+        btn.disabled = false;
+        btn.classList.remove('bg-slate-300', 'cursor-not-allowed');
+        btn.classList.add('bg-emerald-600', 'hover:bg-emerald-700', 'cursor-pointer');
+        btn.innerText = `ยืนยันการจองห้อง ${state.selectedRoom}`;
+      } else {
+        btn.disabled = true;
+        btn.classList.add('bg-slate-300', 'cursor-not-allowed');
+        btn.classList.remove('bg-emerald-600', 'hover:bg-emerald-700', 'cursor-pointer');
+        btn.innerText = 'กรุณาคลิกเลือกห้องที่ว่างด้านบน';
+      }
+    }
+
+    // บันทึกฟอร์ม
+    function handleFormSubmit(e) {
+      e.preventDefault();
+      const payload = {
+        studentId: document.getElementById('bStudentId').value.trim(),
+        name: document.getElementById('bName').value.trim(),
+        phone: document.getElementById('bPhone').value.trim(),
+        date: document.getElementById('bDate').value,
+        startTime: document.getElementById('bStartTime').value,
+        endTime: document.getElementById('bEndTime').value,
+        reason: document.getElementById('bReason').value.trim(),
+        passcode: document.getElementById('bPasscode').value.trim(),
+        room: state.selectedRoom
+      };
+
+      const btn = document.getElementById('submitBookingBtn');
+      btn.disabled = true;
+      btn.innerText = 'กำลังบันทึกลงชีท...';
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            btn.disabled = false;
+            btn.innerText = 'ยืนยันการจองห้อง';
+            if (res.success) {
+              alert(res.message);
+              document.getElementById('bReason').value = '';
+              document.getElementById('bPasscode').value = '';
+              loadBookings();
+              switchTab('timeline');
+            } else {
+              alert(res.message);
+            }
+          })
+          .withFailureHandler(function(err) {
+            btn.disabled = false;
+            btn.innerText = 'ยืนยันการจองห้อง';
+            alert('เกิดข้อผิดพลาด: ' + err.message);
+          })
+          .createBooking(payload);
+      }
+    }
+
+    // แท็บการจองของฉัน
+    function renderMyBookings() {
+      const searchId = document.getElementById('searchMyId').value.trim();
+      const listContainer = document.getElementById('myBookingsList');
+
+      if (!searchId) {
+        listContainer.innerHTML = `<div class="text-center py-6 text-slate-400 text-xs">กรุณากรอกรหัสนักศึกษา</div>`;
+        return;
+      }
+
+      // เปรียบเทียบเป็น String
+      const myItems = state.bookings.filter(b => String(b.studentId).trim() === searchId);
+
+      if (myItems.length === 0) {
+        listContainer.innerHTML = `<div class="text-center py-6 text-slate-400 text-xs">ไม่พบประวัติการจองของรหัส ${searchId}</div>`;
+        return;
+      }
+
+      let html = '';
+      myItems.forEach(b => {
+        html += `
+          <div class="border border-slate-200 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white hover:border-slate-300">
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="font-bold text-slate-800 text-sm">ห้อง ${b.room}</span>
+                <span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded">${b.date}</span>
+                <span class="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">${b.startTime} - ${b.endTime} น.</span>
+              </div>
+              <p class="text-xs text-slate-500">${b.reason}</p>
+              <div class="mt-1 text-[11px] text-slate-400">
+                ${b.hasPasscode ? '🔒 มีรหัสผ่านยกเลิก' : '🔓 ไม่มีรหัสผ่าน (ใครก็ยกเลิกได้)'}
+              </div>
+            </div>
+            <button onclick='promptCancelBooking(${JSON.stringify(b).replace(/'/g, "&apos;")})' class="px-3 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 text-xs font-bold rounded-lg self-end sm:self-center">
+              ยกเลิกรายการ
+            </button>
+          </div>
+        `;
+      });
+
+      listContainer.innerHTML = html;
+    }
+
+    // ระบบขอยกเลิก
+    function promptCancelBooking(b) {
+      targetCancelBooking = b;
+      closeModal('detailModal');
+      document.getElementById('cancelDesc').innerText = `ห้อง ${b.room} วันที่ ${b.date} เวลา ${b.startTime}-${b.endTime}`;
+      const passBox = document.getElementById('passcodeBox');
+      document.getElementById('inputCancelPasscode').value = '';
+
+      if (b.hasPasscode) {
+        passBox.classList.remove('hidden');
+      } else {
+        passBox.classList.add('hidden');
+      }
+
+      openModal('cancelModal');
+    }
+
+    function confirmExecuteCancel() {
+      if (!targetCancelBooking) return;
+      const pass = document.getElementById('inputCancelPasscode').value.trim();
+      const btn = document.getElementById('btnExecuteCancel');
+      btn.disabled = true;
+      btn.innerText = 'กำลังลบ...';
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            btn.disabled = false;
+            btn.innerText = 'ยืนยันการลบ';
+            closeModal('cancelModal');
+            alert(res.message);
+            if (res.success) {
+              loadBookings();
+              renderMyBookings();
+            }
+          })
+          .withFailureHandler(function(err) {
+            btn.disabled = false;
+            btn.innerText = 'ยืนยันการลบ';
+            alert('เกิดข้อผิดพลาด: ' + err.message);
+          })
+          .cancelBooking(targetCancelBooking.id, pass);
+      }
+    }
+
+    // รายละเอียด Modal
+    function openBookingDetail(bk) {
+      currentDetailBooking = bk;
+      document.getElementById('mRoomBadge').innerText = 'ห้อง ' + bk.room;
+      document.getElementById('mTime').innerText = `${bk.date} (${bk.startTime} - ${bk.endTime} น.)`;
+      document.getElementById('mName').innerText = bk.name;
+      document.getElementById('mStudentId').innerText = 'รหัสนักศึกษา: ' + bk.studentId;
+      document.getElementById('mPhone').innerText = bk.phone;
+      document.getElementById('mPhoneLink').href = 'tel:' + bk.phone;
+      document.getElementById('mReason').innerText = bk.reason;
+      openModal('detailModal');
+    }
+
+    function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+    function switchTab(tab) {
+      ['timeline', 'booking', 'mybookings'].forEach(t => {
+        document.getElementById(`view-${t}`).classList.add('hidden');
+        document.getElementById(`tabBtn-${t}`).className = 'px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900';
+      });
+      document.getElementById(`view-${tab}`).classList.remove('hidden');
+      document.getElementById(`tabBtn-${tab}`).className = 'px-3 py-1.5 rounded-lg bg-white shadow-sm text-emerald-700 font-bold';
+
+      const dateBar = document.getElementById('dateControlBar');
+      if (tab === 'timeline') dateBar.classList.remove('hidden');
+      else dateBar.classList.add('hidden');
+    }
+
+    function timeToMinutes(t) {
+      if (!t) return 0;
+      const parts = t.split(':');
+      return parseInt(parts[0], 10) * 60 + parseInt(parts[1] || 0, 10);
+    }
+  </script>
+</body>
+</html>
